@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PaintingCondition AI</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=DM+Mono:wght@300;400&display=swap');
+
+  :root {
+    --cream: #f5f0e8;
+    --ink: #1a1410;
+    --rust: #8b3a2a;
+    --gold: #c9a84c;
+    --sage: #4a5e4a;
+    --paper: #ede8dc;
+    --shadow: rgba(26,20,16,0.15);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Mono', monospace;
+    background: var(--cream);
+    color: var(--ink);
+    min-height: 100vh;
+  }
+
+  header {
+    background: var(--ink);
+    color: var(--cream);
+    padding: 1rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.3rem;
+    letter-spacing: 0.02em;
+  }
+
+  header span {
+    font-size: 0.65rem;
+    background: var(--gold);
+    color: var(--ink);
+    padding: 2px 8px;
+    border-radius: 2px;
+  }
+
+  .container { max-width: 680px; margin: 0 auto; padding: 1.5rem; }
+
+  .card {
+    background: white;
+    border: 1px solid #ddd6c8;
+    border-radius: 4px;
+    padding: 1.25rem;
+    margin-bottom: 1.25rem;
+    box-shadow: 0 2px 8px var(--shadow);
+  }
+
+  .card h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1rem;
+    margin-bottom: 1rem;
+    color: var(--rust);
+    border-bottom: 1px solid #e8e0d0;
+    padding-bottom: 0.5rem;
+  }
+
+  input[type="text"] {
+    width: 100%;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid #ccc4b4;
+    border-radius: 3px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.85rem;
+    background: var(--paper);
+    margin-bottom: 0.75rem;
+  }
+
+  .upload-zone {
+    border: 2px dashed #c9b99a;
+    border-radius: 4px;
+    padding: 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--paper);
+  }
+
+  .upload-zone:hover { border-color: var(--rust); background: #f5ede0; }
+  .upload-zone input { display: none; }
+  .upload-zone .icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+  .upload-zone p { font-size: 0.8rem; color: #7a6e60; }
+  .upload-zone strong { color: var(--rust); font-size: 0.9rem; display: block; margin-bottom: 0.25rem; }
+
+  #preview-wrap { display: none; position: relative; margin-top: 1rem; }
+  #preview { width: 100%; border-radius: 3px; display: block; }
+  #annotation-canvas {
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%;
+    cursor: crosshair;
+    border-radius: 3px;
+  }
+
+  .btn {
+    display: inline-block;
+    padding: 0.65rem 1.2rem;
+    border: none;
+    border-radius: 3px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.03em;
+  }
+
+  .btn-primary { background: var(--rust); color: white; }
+  .btn-primary:hover { background: #7a2f1e; }
+  .btn-primary:disabled { background: #bbb; cursor: not-allowed; }
+  .btn-secondary { background: var(--sage); color: white; }
+  .btn-secondary:hover { background: #3a4e3a; }
+  .btn-outline { background: transparent; border: 1px solid var(--ink); color: var(--ink); }
+  .btn-outline:hover { background: var(--ink); color: white; }
+  .btn-gold { background: var(--gold); color: var(--ink); }
+  .btn-gold:hover { background: #b89438; }
+  .btn-sm { padding: 0.4rem 0.8rem; font-size: 0.75rem; }
+  .btn-row { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.75rem; }
+
+  .loader {
+    display: none;
+    text-align: center;
+    padding: 2rem;
+    color: var(--rust);
+    font-size: 0.85rem;
+  }
+
+  .loader .spinner {
+    width: 32px; height: 32px;
+    border: 3px solid #e8e0d0;
+    border-top-color: var(--rust);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 0.75rem;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .findings-list { list-style: none; }
+
+  .finding-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    border-radius: 3px;
+    margin-bottom: 0.5rem;
+    border-left: 3px solid transparent;
+  }
+
+  .finding-item.high { background: #fdf0ed; border-color: var(--rust); }
+  .finding-item.medium { background: #fdf8ed; border-color: var(--gold); }
+  .finding-item.low { background: #edf3ed; border-color: var(--sage); }
+
+  .finding-badge {
+    font-size: 0.65rem;
+    padding: 2px 6px;
+    border-radius: 2px;
+    white-space: nowrap;
+    margin-top: 2px;
+  }
+
+  .badge-high { background: var(--rust); color: white; }
+  .badge-medium { background: var(--gold); color: var(--ink); }
+  .badge-low { background: var(--sage); color: white; }
+
+  .finding-text { font-size: 0.82rem; line-height: 1.5; }
+  .finding-text strong { font-size: 0.8rem; display: block; margin-bottom: 2px; }
+
+  .annotation-toolbar {
+    display: none;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin: 0.75rem 0;
+    padding: 0.75rem;
+    background: var(--paper);
+    border-radius: 3px;
+    align-items: center;
+  }
+
+  .annotation-toolbar label { font-size: 0.75rem; color: #7a6e60; }
+
+  .color-pick { display: flex; gap: 0.3rem; }
+
+  .color-dot {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: border-color 0.15s;
+    position: relative;
+  }
+
+  .color-dot.active { border-color: var(--ink); }
+  .color-dot[title]:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: 28px; left: 50%;
+    transform: translateX(-50%);
+    background: var(--ink);
+    color: white;
+    font-size: 0.65rem;
+    padding: 2px 6px;
+    border-radius: 2px;
+    white-space: nowrap;
+  }
+
+  textarea {
+    width: 100%;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid #ccc4b4;
+    border-radius: 3px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.82rem;
+    background: var(--paper);
+    resize: vertical;
+    min-height: 80px;
+    line-height: 1.5;
+  }
+
+  #save-status {
+    font-size: 0.78rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 3px;
+    display: none;
+    margin-top: 0.75rem;
+  }
+
+  #save-status.success { background: #edf3ed; color: var(--sage); border: 1px solid #c4d4c4; }
+  #save-status.error { background: #fdf0ed; color: var(--rust); border: 1px solid #e8c4bc; }
+
+  .tabs { display: flex; border-bottom: 1px solid #ddd6c8; margin-bottom: 1rem; }
+
+  .tab {
+    padding: 0.5rem 1rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+    cursor: pointer;
+    border: none;
+    background: none;
+    color: #7a6e60;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+  }
+
+  .tab.active { color: var(--rust); border-bottom-color: var(--rust); }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  .history-item {
+    padding: 0.75rem;
+    border: 1px solid #ddd6c8;
+    border-radius: 3px;
+    margin-bottom: 0.5rem;
+    font-size: 0.8rem;
+  }
+
+  .history-item .hi-name {
+    font-family: 'Playfair Display', serif;
+    margin-bottom: 0.25rem;
+  }
+
+  .history-item .hi-meta { color: #7a6e60; font-size: 0.73rem; }
+
+  .empty-state {
+    text-align: center;
+    color: #7a6e60;
+    padding: 2rem;
+    font-size: 0.82rem;
+  }
+
+  .severity-summary { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
+
+  .sev-chip {
+    font-size: 0.73rem;
+    padding: 3px 10px;
+    border-radius: 20px;
+  }
+
+  @media (max-width: 480px) {
+    .container { padding: 1rem; }
+    header h1 { font-size: 1.1rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>PaintingCondition <span>AI BETA</span></h1>
+  </div>
+</header>
+
+<div class="container">
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('report', this)">New Report</button>
+    <button class="tab" onclick="switchTab('history', this)">History</button>
+  </div>
+
+  <!-- NEW REPORT TAB -->
+  <div class="tab-content active" id="tab-report">
+
+    <div class="card">
+      <h2>01 — Upload Painting</h2>
+      <input type="text" id="painting-name" placeholder="Painting name / ID (e.g. Untitled_1842_oil)">
+      <div class="upload-zone" onclick="document.getElementById('file-input').click()">
+        <input type="file" id="file-input" accept="image/*" capture="environment" onchange="handleImage(event)">
+        <div class="icon">🖼️</div>
+        <strong>Tap to photograph or upload</strong>
+        <p>Camera, gallery, or file — JPG / PNG / WEBP</p>
+      </div>
+      <div id="preview-wrap">
+        <img id="preview" alt="Painting preview">
+        <canvas id="annotation-canvas"></canvas>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>02 — AI Analysis</h2>
+      <button class="btn btn-primary" id="analyze-btn" onclick="analyzeImage()" disabled>
+        Analyze with AI →
+      </button>
+      <div class="loader" id="loader">
+        <div class="spinner"></div>
+        Examining painting for defects…
+      </div>
+      <div id="findings-wrap" style="display:none; margin-top:1rem;">
+        <div class="severity-summary" id="sev-summary"></div>
+        <ul class="findings-list" id="findings-list"></ul>
+      </div>
+    </div>
+
+    <div class="card" id="manual-card" style="display:none;">
+      <h2>03 — Manual Annotations</h2>
+      <p style="font-size:0.8rem;color:#7a6e60;margin-bottom:0.75rem;">
+        Draw rectangles directly on the image above to mark defects the AI missed. Pick a color for each defect type.
+      </p>
+      <div class="annotation-toolbar" id="annotation-toolbar" style="display:flex;">
+        <label>Defect type:</label>
+        <div class="color-pick">
+          <div class="color-dot active" style="background:#c0392b" onclick="setColor('#c0392b',this)" title="Crack/Damage"></div>
+          <div class="color-dot" style="background:#e67e22" onclick="setColor('#e67e22',this)" title="Foxing"></div>
+          <div class="color-dot" style="background:#27ae60" onclick="setColor('#27ae60',this)" title="Fungus/Mold"></div>
+          <div class="color-dot" style="background:#2980b9" onclick="setColor('#2980b9',this)" title="Other"></div>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="clearAnnotations()">Clear all</button>
+        <button class="btn btn-outline btn-sm" onclick="undoAnnotation()">Undo last</button>
+      </div>
+      <textarea id="notes" placeholder="Additional notes: overall condition, provenance, conservator observations, environment…" rows="4"></textarea>
+    </div>
+
+    <div class="card" id="save-card" style="display:none;">
+      <h2>04 — Save Report</h2>
+      <p style="font-size:0.8rem;color:#7a6e60;margin-bottom:0.75rem;">
+        Saves AI findings, manual annotations, and notes to the database. All corrections help improve future AI accuracy.
+      </p>
+      <div class="btn-row">
+        <button class="btn btn-gold" id="save-btn" onclick="saveReport()">💾 Save to Database</button>
+        <button class="btn btn-secondary" onclick="window.print()">Print / Export PDF</button>
+      </div>
+      <div id="save-status"></div>
+    </div>
+
+  </div>
+
+  <!-- HISTORY TAB -->
+  <div class="tab-content" id="tab-history">
+    <div class="card">
+      <h2>Saved Reports</h2>
+      <div class="btn-row" style="margin-bottom:1rem;">
+        <button class="btn btn-outline btn-sm" onclick="loadHistory()">↻ Refresh</button>
+        <button class="btn btn-secondary btn-sm" onclick="exportCSV()">⬇ Export CSV for Retraining</button>
+      </div>
+      <div id="history-list"><div class="empty-state">Click Refresh to load reports.</div></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ============================================================
+//  CONFIGURATION — paste your keys here
+// ============================================================
+const SUPABASE_URL  = 'YOUR_SUPABASE_URL';
+const SUPABASE_KEY  = 'YOUR_SUPABASE_ANON_KEY';
+const GEMINI_KEY    = 'YOUR_GEMINI_API_KEY';
+// ============================================================
+
+let currentImage = null;
+let currentMediaType = 'image/jpeg';
+let currentFindings = [];
+let drawColor = '#c0392b';
+let isDrawing = false;
+let startX, startY;
+let annotations = [];
+let canvasEl, ctx, imgEl;
+
+// --- TABS ---
+function switchTab(tab, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  el.classList.add('active');
+  if (tab === 'history') loadHistory();
+}
+
+// --- IMAGE LOAD ---
+function handleImage(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  currentMediaType = file.type || 'image/jpeg';
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    currentImage = ev.target.result;
+    imgEl = document.getElementById('preview');
+    imgEl.src = currentImage;
+    imgEl.onload = () => {
+      const wrap = document.getElementById('preview-wrap');
+      wrap.style.display = 'block';
+      canvasEl = document.getElementById('annotation-canvas');
+      canvasEl.width  = imgEl.naturalWidth;
+      canvasEl.height = imgEl.naturalHeight;
+      canvasEl.style.width  = imgEl.offsetWidth  + 'px';
+      canvasEl.style.height = imgEl.offsetHeight + 'px';
+      ctx = canvasEl.getContext('2d');
+      setupCanvas();
+    };
+    document.getElementById('analyze-btn').disabled = false;
+    // reset previous results
+    document.getElementById('findings-wrap').style.display = 'none';
+    document.getElementById('manual-card').style.display = 'none';
+    document.getElementById('save-card').style.display = 'none';
+    annotations = [];
+  };
+  reader.readAsDataURL(file);
+}
+
+// --- CANVAS ---
+function setupCanvas() {
+  canvasEl.replaceWith(canvasEl.cloneNode()); // remove old listeners
+  canvasEl = document.getElementById('annotation-canvas');
+  ctx = canvasEl.getContext('2d');
+  canvasEl.addEventListener('mousedown',  e => startDraw(e));
+  canvasEl.addEventListener('mousemove',  e => moveDraw(e));
+  canvasEl.addEventListener('mouseup',    e => endDraw(e));
+  canvasEl.addEventListener('touchstart', e => { e.preventDefault(); startDraw(e.touches[0]); }, {passive:false});
+  canvasEl.addEventListener('touchmove',  e => { e.preventDefault(); moveDraw(e.touches[0]); }, {passive:false});
+  canvasEl.addEventListener('touchend',   e => { e.preventDefault(); endDraw(e.changedTouches[0]); }, {passive:false});
+}
+
+function pos(e) {
+  const r = canvasEl.getBoundingClientRect();
+  return {
+    x: (e.clientX - r.left) * (canvasEl.width  / r.width),
+    y: (e.clientY - r.top)  * (canvasEl.height / r.height)
+  };
+}
+
+function startDraw(e) { isDrawing = true; const p = pos(e); startX = p.x; startY = p.y; }
+
+function moveDraw(e) {
+  if (!isDrawing) return;
+  const p = pos(e);
+  redraw();
+  ctx.strokeStyle = drawColor;
+  ctx.lineWidth = 3;
+  ctx.setLineDash([6,3]);
+  ctx.strokeRect(startX, startY, p.x - startX, p.y - startY);
+  ctx.fillStyle = drawColor + '22';
+  ctx.fillRect(startX, startY, p.x - startX, p.y - startY);
+}
+
+function endDraw(e) {
+  if (!isDrawing) return;
+  isDrawing = false;
+  const p = pos(e);
+  const w = p.x - startX, h = p.y - startY;
+  if (Math.abs(w) > 8 && Math.abs(h) > 8) {
+    annotations.push({ x: startX, y: startY, w, h, color: drawColor, type: colorLabel(drawColor), ts: new Date().toISOString() });
+  }
+  redraw();
+}
+
+function colorLabel(c) {
+  return {'#c0392b':'crack/damage','#e67e22':'foxing','#27ae60':'fungus/mold','#2980b9':'other'}[c] || 'unknown';
+}
+
+function redraw() {
+  ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
+  ctx.setLineDash([]);
+  annotations.forEach(a => {
+    ctx.strokeStyle = a.color;
+    ctx.lineWidth = 3;
+    ctx.strokeRect(a.x, a.y, a.w, a.h);
+    ctx.fillStyle = a.color + '22';
+    ctx.fillRect(a.x, a.y, a.w, a.h);
+    // label
+    ctx.fillStyle = a.color;
+    ctx.font = `bold ${Math.max(12, canvasEl.width * 0.018)}px monospace`;
+    ctx.fillText(a.type, a.x + 4, a.y + Math.max(14, canvasEl.width * 0.02));
+  });
+}
+
+function clearAnnotations() { annotations = []; if(ctx) ctx.clearRect(0,0,canvasEl.width,canvasEl.height); }
+function undoAnnotation()   { annotations.pop(); redraw(); }
+
+function setColor(c, el) {
+  drawColor = c;
+  document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// --- GEMINI AI ANALYSIS ---
+async function analyzeImage() {
+  if (!currentImage) return;
+  document.getElementById('loader').style.display = 'block';
+  document.getElementById('analyze-btn').disabled = true;
+  document.getElementById('findings-wrap').style.display = 'none';
+
+  const base64 = currentImage.split(',')[1];
+
+  const prompt = `You are an expert art conservator specialising in painting condition assessments.
+Carefully examine this painting photograph and identify ALL visible defects or condition issues.
+
+Look specifically for:
+- Fungus / mould (biological growth, dark patches, bloom)
+- Foxing (brown rust-coloured aging spots)
+- Cracks (paint layer craquelure, structural or drying cracks)
+- Flaking or peeling paint
+- Water damage / tide lines / staining
+- Yellowing or darkened varnish
+- Abrasion or paint loss
+- Canvas tears or deformations
+- Previous restoration or retouching visible
+- Any other condition concerns
+
+Respond ONLY with a single valid JSON object — no markdown fences, no explanation, no extra text:
+{
+  "overall_condition": "Poor|Fair|Good|Excellent",
+  "priority": "Immediate|Soon|Routine|None",
+  "summary": "2-3 sentence overall assessment",
+  "findings": [
+    {
+      "type": "defect name",
+      "severity": "High|Medium|Low",
+      "location": "where in the image",
+      "description": "detailed description",
+      "recommendation": "conservation action recommended"
+    }
+  ]
+}`;
+
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              { inline_data: { mime_type: currentMediaType, data: base64 } },
+              { text: prompt }
+            ]
+          }],
+          generationConfig: { temperature: 0.2, maxOutputTokens: 1500 }
+        })
+      }
+    );
+
+    const data = await res.json();
+
+    if (data.error) throw new Error(data.error.message);
+
+    let raw = data.candidates[0].content.parts[0].text.trim();
+    // strip markdown fences if Gemini adds them anyway
+    raw = raw.replace(/^```json\s*/i,'').replace(/^```\s*/,'').replace(/```\s*$/,'').trim();
+
+    const json = JSON.parse(raw);
+    currentFindings = json;
+    renderFindings(json);
+    document.getElementById('manual-card').style.display = 'block';
+    document.getElementById('save-card').style.display = 'block';
+
+  } catch (err) {
+    document.getElementById('findings-wrap').style.display = 'block';
+    document.getElementById('findings-list').innerHTML =
+      `<li style="color:var(--rust);font-size:0.82rem;padding:0.75rem;">
+        ✗ Analysis failed: ${err.message}<br>
+        <span style="color:#7a6e60;">Check that your Gemini API key is correct and try again.</span>
+      </li>`;
+    document.getElementById('findings-wrap').style.display = 'block';
+  }
+
+  document.getElementById('loader').style.display = 'none';
+  document.getElementById('analyze-btn').disabled = false;
+}
+
+function renderFindings(json) {
+  const wrap = document.getElementById('findings-wrap');
+  const list = document.getElementById('findings-list');
+  const sev  = document.getElementById('sev-summary');
+  wrap.style.display = 'block';
+  list.innerHTML = '';
+
+  const counts = {High:0, Medium:0, Low:0};
+  (json.findings||[]).forEach(f => counts[f.severity] = (counts[f.severity]||0)+1);
+
+  sev.innerHTML = `
+    <span class="sev-chip" style="background:#fdf0ed;color:var(--rust)">⚠ ${counts.High} High</span>
+    <span class="sev-chip" style="background:#fdf8ed;color:#b7860a">◆ ${counts.Medium} Medium</span>
+    <span class="sev-chip" style="background:#edf3ed;color:var(--sage)">● ${counts.Low} Low</span>
+    <span class="sev-chip" style="background:#f0f0f0;color:#555">Overall: ${json.overall_condition||'—'}</span>
+    <span class="sev-chip" style="background:#f0f0f0;color:#555">Priority: ${json.priority||'—'}</span>
+  `;
+
+  if (json.summary) {
+    list.innerHTML += `<li style="font-size:0.82rem;line-height:1.6;padding:0.75rem;background:var(--paper);border-radius:3px;margin-bottom:0.75rem;font-style:italic;">${json.summary}</li>`;
+  }
+
+  (json.findings||[]).forEach(f => {
+    const sc = (f.severity||'low').toLowerCase();
+    list.innerHTML += `
+      <li class="finding-item ${sc}">
+        <span class="finding-badge badge-${sc}">${f.severity}</span>
+        <div class="finding-text">
+          <strong>${f.type}</strong>
+          <em style="color:#7a6e60;font-size:0.75rem;display:block;">${f.location}</em>
+          ${f.description}<br>
+          <span style="color:var(--sage);font-size:0.75rem;">→ ${f.recommendation}</span>
+        </div>
+      </li>`;
+  });
+}
+
+// --- SAVE TO SUPABASE ---
+async function saveReport() {
+  const btn = document.getElementById('save-btn');
+  const status = document.getElementById('save-status');
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+  status.style.display = 'none';
+
+  const payload = {
+    painting_name:      document.getElementById('painting-name').value.trim() || 'Unnamed',
+    image_base64:       currentImage,
+    ai_findings:        currentFindings,
+    manual_annotations: annotations,
+    user_corrections:   document.getElementById('notes').value.trim(),
+    status:             'reviewed'
+  };
+
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/reports`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_KEY,
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (res.ok || res.status === 201) {
+      status.textContent = '✓ Report saved. AI findings, annotations, and notes all recorded.';
+      status.className = 'success';
+    } else {
+      const err = await res.text();
+      throw new Error(err);
+    }
+  } catch(e) {
+    status.textContent = '✗ Save failed: ' + e.message;
+    status.className = 'error';
+  }
+
+  status.style.display = 'block';
+  btn.disabled = false;
+  btn.textContent = '💾 Save to Database';
+}
+
+// --- LOAD HISTORY ---
+async function loadHistory() {
+  const el = document.getElementById('history-list');
+  el.innerHTML = '<div class="empty-state">Loading…</div>';
+
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/reports?select=id,created_at,painting_name,status,ai_findings,manual_annotations&order=created_at.desc&limit=100`,
+      { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } }
+    );
+    const data = await res.json();
+
+    if (!Array.isArray(data) || !data.length) {
+      el.innerHTML = '<div class="empty-state">No reports saved yet.</div>';
+      return;
+    }
+
+    el.innerHTML = data.map(r => {
+      const d = new Date(r.created_at).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+      const defects   = r.ai_findings?.findings?.length || 0;
+      const manual    = (r.manual_annotations||[]).length;
+      const condition = r.ai_findings?.overall_condition || '—';
+      return `<div class="history-item">
+        <div class="hi-name">${r.painting_name || 'Unnamed'}</div>
+        <div class="hi-meta">${d} &nbsp;·&nbsp; ${defects} AI defects &nbsp;·&nbsp; ${manual} manual regions &nbsp;·&nbsp; ${condition} &nbsp;·&nbsp; ${r.status}</div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    el.innerHTML = `<div class="empty-state">Could not load: ${e.message}</div>`;
+  }
+}
+
+// --- EXPORT CSV FOR RETRAINING ---
+async function exportCSV() {
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/reports?select=id,created_at,painting_name,ai_findings,manual_annotations,user_corrections&order=created_at.desc`,
+      { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } }
+    );
+    const data = await res.json();
+
+    const escape = v => `"${String(v).replace(/"/g,'""')}"`;
+
+    const rows = [['id','date','painting_name','overall_condition','ai_defects_count','ai_findings_json','manual_regions_count','manual_annotations_json','notes']];
+    data.forEach(r => {
+      rows.push([
+        r.id,
+        r.created_at,
+        r.painting_name,
+        r.ai_findings?.overall_condition || '',
+        (r.ai_findings?.findings||[]).length,
+        JSON.stringify(r.ai_findings?.findings||[]),
+        (r.manual_annotations||[]).length,
+        JSON.stringify(r.manual_annotations||[]),
+        r.user_corrections||''
+      ].map(escape));
+    });
+
+    const csv  = rows.map(r => r.join(',')).join('\n');
+    const blob = new Blob([csv], {type:'text/csv'});
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url;
+    a.download = `painting_reports_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch(e) {
+    alert('Export failed: ' + e.message);
+  }
+}
+</script>
+</body>
+</html>
+```
+
+**Step 3: Replace the 3 placeholders**
+
+Find these 3 lines near the top of the `<script>` section and replace the placeholder text:
+```
+const SUPABASE_URL  = 'YOUR_SUPABASE_URL';       ← paste your Supabase project URL
+const SUPABASE_KEY  = 'YOUR_SUPABASE_ANON_KEY';  ← paste your Supabase anon key
+const GEMINI_KEY    = 'YOUR_GEMINI_API_KEY';      ← paste your AIza... key
