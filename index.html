@@ -395,8 +395,7 @@
 //  CONFIGURATION — paste your keys here
 // ============================================================
 const SUPABASE_URL  = 'https://bkmupmvlceejjiwvtmdk.supabase.co';
-const SUPABASE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJrbXVwbXZsY2Vlamppd3Z0bWRrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5MTg2MDksImV4cCI6MjA4OTQ5NDYwOX0.6nJHyb26FZAynEJ46P_Zp7ArJvO4IXMeGMxAfcgyUeY
-';
+const SUPABASE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJrbXVwbXZsY2Vlamppd3Z0bWRrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5MTg2MDksImV4cCI6MjA4OTQ5NDYwOX0.6nJHyb26FZAynEJ46P_Zp7ArJvO4IXMeGMxAfcgyUeY';
 const GEMINI_KEY    = 'AIzaSyCh4gewUsCOA9eueg_suJbVqUsdjuOhXxY';
 // ============================================================
 
@@ -566,7 +565,7 @@ Respond ONLY with a single valid JSON object — no markdown fences, no explanat
 
   try {
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -766,12 +765,3 @@ async function exportCSV() {
 </script>
 </body>
 </html>
-```
-
-**Step 3: Replace the 3 placeholders**
-
-Find these 3 lines near the top of the `<script>` section and replace the placeholder text:
-```
-const SUPABASE_URL  = 'YOUR_SUPABASE_URL';       ← paste your Supabase project URL
-const SUPABASE_KEY  = 'YOUR_SUPABASE_ANON_KEY';  ← paste your Supabase anon key
-const GEMINI_KEY    = 'YOUR_GEMINI_API_KEY';      ← paste your AIza... key
